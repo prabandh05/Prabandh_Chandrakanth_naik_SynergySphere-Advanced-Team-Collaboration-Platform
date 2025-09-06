@@ -1,6 +1,7 @@
 import { SplashCursor } from "@/components/ui/splash-cursor";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, Target, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   return (
@@ -19,9 +20,11 @@ const Index = () => {
           <a href="#about" className="text-muted-foreground hover:text-foreground transition-colors">
             About Us
           </a>
-          <Button variant="outline" size="sm">
-            Login
-          </Button>
+          <Link to="/login">
+            <Button variant="outline" size="sm">
+              Login
+            </Button>
+          </Link>
         </div>
       </nav>
 
@@ -41,10 +44,12 @@ const Index = () => {
             and measures team collaboration with our unique Synergy Score system.
           </p>
           
-          <Button size="lg" className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground group">
-            Get Started
-            <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-          </Button>
+          <Link to="/login">
+            <Button size="lg" className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground group">
+              Get Started
+              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </Link>
         </div>
       </main>
 
