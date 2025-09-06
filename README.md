@@ -1,73 +1,109 @@
-# Welcome to your Lovable project
+# SynergySphere - Advanced Team Collaboration Platform
 
-## Project info
+A modern, full-stack team collaboration platform built with React, TypeScript, and Supabase. Features include project management, real-time chat, task tracking with Kanban boards, and a unique synergy scoring system.
 
-**URL**: https://lovable.dev/projects/cc7f63b3-2b43-4124-b077-850d1d3b008d
+## 🚀 Features
 
-## How can I edit this code?
+- **Project Management**: Create, manage, and collaborate on projects
+- **Task Management**: Kanban board with drag-and-drop functionality
+- **Real-time Chat**: Project-specific discussion channels
+- **Synergy Scoring**: Gamified collaboration tracking system
+- **User Authentication**: Secure login/signup with Supabase Auth
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
 
-There are several ways of editing your application.
+## 🛠️ Tech Stack
 
-**Use Lovable**
+- **Frontend**: React + TypeScript + Vite
+- **UI Components**: shadcn/ui + Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Real-time)
+- **State Management**: React Context + TanStack Query
+- **Routing**: React Router DOM
+- **Icons**: Lucide React
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/cc7f63b3-2b43-4124-b077-850d1d3b008d) and start prompting.
+## 📋 Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (v18 or higher)
+- npm or yarn
+- A Supabase account
 
-**Use your preferred IDE**
+## 🚀 Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/prabandh05/Prabandh_Chandrakanth_naik_SynergySphere-Advanced-Team-Collaboration-Platform.git
+   cd Prabandh_Chandrakanth_naik_SynergySphere-Advanced-Team-Collaboration-Platform
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-Follow these steps:
+3. **Set up environment variables**
+   Create a `.env` file in the root directory:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+4. **Set up Supabase database**
+   - Go to [supabase.com](https://supabase.com)
+   - Create a new project
+   - Run the SQL schema from `SETUP.md` in your Supabase SQL editor
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+6. **Open your browser**
+   Navigate to [http://localhost:5173](http://localhost:5173)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## 📁 Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   ├── KanbanBoard.tsx # Task management board
+│   ├── ProjectCard.tsx # Project display component
+│   └── ...
+├── contexts/           # React contexts
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions and configurations
+├── pages/              # Page components
+└── main.tsx           # Application entry point
 ```
 
-**Edit a file directly in GitHub**
+## 🗄️ Database Schema
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The application uses Supabase with the following main tables:
+- `projects` - Project information
+- `project_members` - Project team members
+- `tasks` - Task management
+- `messages` - Real-time chat
+- `notifications` - User notifications
+- `synergy_scores` - Collaboration scoring
 
-**Use GitHub Codespaces**
+## 🤝 Contributing
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## What technologies are used for this project?
+## 📄 License
 
-This project is built with:
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 👨‍💻 Author
 
-## How can I deploy this project?
+**Prabandh Chandrakanth Naik**
+- GitHub: [@prabandh05](https://github.com/prabandh05)
 
-Simply open [Lovable](https://lovable.dev/projects/cc7f63b3-2b43-4124-b077-850d1d3b008d) and click on Share -> Publish.
+## 🙏 Acknowledgments
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- Built with [shadcn/ui](https://ui.shadcn.com/)
+- Powered by [Supabase](https://supabase.com/)
+- Icons by [Lucide](https://lucide.dev/)
