@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +18,10 @@ import {
 } from 'lucide-react'
 import { KanbanBoard } from './KanbanBoard'
 import { ProjectChat } from './ProjectChat'
+import { EmailInviteDialog } from './EmailInviteDialog'
+import { ProjectChart } from './ProjectChart'
+import { getProjectMembers, getTasks, getProjects } from '@/lib/database'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface ProjectDetailProps {
   projectId: string
@@ -25,30 +29,80 @@ interface ProjectDetailProps {
 }
 
 export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
+  const [members, setMembers] = useState<any[]>([])
+  const [tasks, setTasks] = useState<any[]>([])
+  const [project, setProject] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  // Mock project data
-  const project = {
-    id: projectId,
-    title: 'Website Redesign',
-    description: 'Complete overhaul of the company website with modern design and improved user experience',
-    status: 'active',
-    progress: 75,
-    deadline: '2024-02-15',
-    members: [
-      { id: '1', name: 'Alice Johnson', role: 'owner', avatar: null },
-      { id: '2', name: 'Bob Smith', role: 'member', avatar: null },
-      { id: '3', name: 'Carol Davis', role: 'member', avatar: null },
-      { id: '4', name: 'David Wilson', role: 'member', avatar: null }
-    ],
-    tasks: {
-      todo: 8,
-      inProgress: 5,
-      done: 12
+  useEffect(() => {
+    if (projectId) {
+      loadProjectData()
+    }
+  }, [projectId])
+
+  const loadProjectData = async () => {
+    if (!user) return
+    
+    try {
+      setLoading(true)
+      const [membersData, tasksData, projectsData] = await Promise.all([
+        getProjectMembers(projectId),
+        getTasks(projectId),
+        getProjects(user.id)
+      ])
+      
+      setMembers(membersData)
+      setTasks(tasksData)
+      
+      // Find the current project from the user's projects
+      const currentProject = projectsData.find(p => p.id === projectId)
+      setProject(currentProject)
+    } catch (error) {
+      console.error('Error loading project data:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const isOverdue = new Date(project.deadline) < new Date() && project.progress < 100
+  // Calculate task counts
+  const taskCounts = {
+    todo: tasks.filter(t => t.status === 'To-Do').length,
+    inProgress: tasks.filter(t => t.status === 'In Progress').length,
+    done: tasks.filter(t => t.status === 'Done').length
+  }
+
+  const totalTasks = taskCounts.todo + taskCounts.inProgress + taskCounts.done
+  const progress = totalTasks > 0 ? Math.round((taskCounts.done / totalTasks) * 100) : 0
+
+  // Use real project data or fallback
+  const projectData = project ? {
+    id: project.id,
+    title: project.title,
+    description: project.description,
+    status: project.status,
+    progress,
+    deadline: project.deadline,
+    members: members.map(member => ({
+      id: member.user_id,
+      name: `User ${member.user_id.slice(0, 8)}`,
+      role: member.role,
+      avatar: null
+    })),
+    tasks: taskCounts
+  } : {
+    id: projectId,
+    title: 'Loading...',
+    description: 'Loading project details...',
+    status: 'active',
+    progress: 0,
+    deadline: new Date().toISOString(),
+    members: [],
+    tasks: { todo: 0, inProgress: 0, done: 0 }
+  }
+
+  const isOverdue = projectData.deadline && new Date(projectData.deadline) < new Date() && projectData.progress < 100
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,15 +114,15 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">{project.title}</h1>
-              <p className="text-muted-foreground">{project.description}</p>
+            <h1 className="text-2xl font-bold">{projectData.title}</h1>
+            <p className="text-muted-foreground">{projectData.description}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <Badge 
-              variant={isOverdue ? 'destructive' : project.status === 'completed' ? 'default' : 'secondary'}
+              variant={isOverdue ? 'destructive' : projectData.status === 'completed' ? 'default' : 'secondary'}
             >
-              {isOverdue ? 'Overdue' : project.status === 'completed' ? 'Completed' : 'Active'}
+              {isOverdue ? 'Overdue' : projectData.status === 'completed' ? 'Completed' : 'Active'}
             </Badge>
             <Button variant="outline" size="sm">
               <Settings className="h-4 w-4 mr-2" />
@@ -85,6 +139,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="charts">Charts</TabsTrigger>
               <TabsTrigger value="chat">Discussion</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
             </TabsList>
@@ -98,8 +153,8 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                     <CheckSquare className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{project.progress}%</div>
-                    <Progress value={project.progress} className="mt-2" />
+                    <div className="text-2xl font-bold">{projectData.progress}%</div>
+                    <Progress value={projectData.progress} className="mt-2" />
                   </CardContent>
                 </Card>
 
@@ -110,10 +165,10 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {project.tasks.todo + project.tasks.inProgress + project.tasks.done}
+                      {projectData.tasks.todo + projectData.tasks.inProgress + projectData.tasks.done}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {project.tasks.done} completed, {project.tasks.inProgress} in progress
+                      {projectData.tasks.done} completed, {projectData.tasks.inProgress} in progress
                     </p>
                   </CardContent>
                 </Card>
@@ -124,7 +179,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{project.members.length}</div>
+                    <div className="text-2xl font-bold">{projectData.members.length}</div>
                     <p className="text-xs text-muted-foreground">Active collaborators</p>
                   </CardContent>
                 </Card>
@@ -136,10 +191,10 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {new Date(project.deadline).toLocaleDateString('en-US', { 
+                      {projectData.deadline ? new Date(projectData.deadline).toLocaleDateString('en-US', { 
                         month: 'short', 
                         day: 'numeric' 
-                      })}
+                      }) : 'No deadline'}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {isOverdue ? 'Overdue' : 'Due date'}
@@ -153,15 +208,12 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Team Members</CardTitle>
-                    <Button size="sm">
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Invite
-                    </Button>
+                    <EmailInviteDialog projectId={projectId} onInvitationSent={loadProjectData} />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-4 md:grid-cols-2">
-                    {project.members.map((member) => (
+                    {projectData.members.map((member) => (
                       <div key={member.id} className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
                         <Avatar>
                           <AvatarImage src={member.avatar || undefined} />
@@ -185,6 +237,10 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
 
             <TabsContent value="tasks">
               <KanbanBoard projectId={projectId} />
+            </TabsContent>
+
+            <TabsContent value="charts">
+              <ProjectChart tasks={tasks} members={members} />
             </TabsContent>
 
             <TabsContent value="chat">

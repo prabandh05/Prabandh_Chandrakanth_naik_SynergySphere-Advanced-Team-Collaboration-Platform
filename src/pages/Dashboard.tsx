@@ -24,19 +24,66 @@ import { ProjectCard } from '@/components/ProjectCard'
 import { TaskList } from '@/components/TaskList'
 import { SynergyLeaderboard } from '@/components/SynergyLeaderboard'
 import { ProjectDetail } from '@/components/ProjectDetail'
+import { CreateProjectDialog } from '@/components/CreateProjectDialog'
+import { EnvironmentCheck } from '@/components/EnvironmentCheck'
+import { NotificationBar } from '@/components/NotificationBar'
+import { InvitationList } from '@/components/InvitationList'
+import { getProjects, getDashboardStats, getTasks } from '@/lib/database'
 
 export default function Dashboard() {
   const { user, signOut, loading } = useAuth()
   const navigate = useNavigate()
   const [selectedProject, setSelectedProject] = useState<string | null>(null)
-  const [projects, setProjects] = useState([])
-  const [tasks, setTasks] = useState([])
+  const [projects, setProjects] = useState<any[]>([])
+  const [tasks, setTasks] = useState<any[]>([])
+  const [stats, setStats] = useState({
+    totalProjects: 0,
+    activeTasks: 0,
+    synergyScore: 0,
+    teamMembers: 0
+  })
+  const [projectsLoading, setProjectsLoading] = useState(true)
+  const [tasksLoading, setTasksLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('projects')
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/login')
     }
   }, [user, loading, navigate])
+
+  useEffect(() => {
+    if (user) {
+      loadDashboardData()
+    }
+  }, [user])
+
+  const loadDashboardData = async () => {
+    if (!user) return
+
+    try {
+      setProjectsLoading(true)
+      setTasksLoading(true)
+
+      // Load projects
+      const userProjects = await getProjects(user.id)
+      setProjects(userProjects)
+
+      // Load user's tasks
+      const userTasks = await getTasks(undefined, user.id)
+      setTasks(userTasks)
+
+      // Load dashboard stats
+      const dashboardStats = await getDashboardStats(user.id)
+      setStats(dashboardStats)
+
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+    } finally {
+      setProjectsLoading(false)
+      setTasksLoading(false)
+    }
+  }
 
   const handleLogout = async () => {
     await signOut()
@@ -64,6 +111,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Notification Bar */}
+      <NotificationBar />
+      
       {/* Top Navigation */}
       <header className="border-b bg-card">
         <div className="flex items-center justify-between px-6 py-4">
@@ -112,25 +162,34 @@ export default function Dashboard() {
             </div>
 
             <nav className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start">
+              <Button 
+                variant={activeTab === 'projects' ? 'default' : 'ghost'} 
+                className="w-full justify-start"
+                onClick={() => setActiveTab('projects')}
+              >
                 <Target className="mr-2 h-4 w-4" />
-                Dashboard
-              </Button>
-              <Button variant="ghost" className="w-full justify-start">
-                <Users className="mr-2 h-4 w-4" />
                 Projects
               </Button>
-              <Button variant="ghost" className="w-full justify-start">
+              <Button 
+                variant={activeTab === 'tasks' ? 'default' : 'ghost'} 
+                className="w-full justify-start"
+                onClick={() => setActiveTab('tasks')}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Tasks
+              </Button>
+              <Button 
+                variant={activeTab === 'synergy' ? 'default' : 'ghost'} 
+                className="w-full justify-start"
+                onClick={() => setActiveTab('synergy')}
+              >
                 <TrendingUp className="mr-2 h-4 w-4" />
                 Synergy
               </Button>
             </nav>
 
             <div className="pt-4 border-t">
-              <Button className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                New Project
-              </Button>
+              <CreateProjectDialog onProjectCreated={loadDashboardData} />
             </div>
           </div>
         </aside>
@@ -140,65 +199,67 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <h2 className="text-3xl font-bold mb-2">Welcome back, {user.user_metadata?.name || 'User'}!</h2>
-              <p className="text-muted-foreground">Here's what's happening with your projects today.</p>
+              <p className="text-muted-foreground">
+                {activeTab === 'projects' && "Here's what's happening with your projects today."}
+                {activeTab === 'tasks' && "Manage your tasks and stay on track."}
+                {activeTab === 'synergy' && "Track your collaboration scores and team performance."}
+              </p>
             </div>
 
-            <Tabs defaultValue="projects" className="space-y-6">
-              <TabsList>
-                <TabsTrigger value="projects">Active Projects</TabsTrigger>
-                <TabsTrigger value="tasks">My Tasks</TabsTrigger>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-              </TabsList>
+            {activeTab === 'projects' && (
+              <div className="space-y-6">
+                <EnvironmentCheck />
+                {projectsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : projects.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Target className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+                    <p className="text-muted-foreground mb-4">Create your first project to get started</p>
+                    <CreateProjectDialog onProjectCreated={loadDashboardData} />
+                  </div>
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {projects.map((project) => {
+                      // Calculate progress based on tasks
+                      const totalTasks = project.tasks?.length || 0
+                      const completedTasks = project.tasks?.filter((task: any) => task.status === 'Done').length || 0
+                      const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
-              <TabsContent value="projects" className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {/* Sample Project Cards */}
-                  <ProjectCard
-                    id="1"
-                    title="Website Redesign"
-                    description="Complete overhaul of the company website"
-                    progress={75}
-                    members={[
-                      { name: 'Alice Johnson', avatar: null },
-                      { name: 'Bob Smith', avatar: null },
-                      { name: 'Carol Davis', avatar: null }
-                    ]}
-                    deadline="2024-02-15"
-                    onClick={() => setSelectedProject('1')}
-                  />
-                  <ProjectCard
-                    id="2"
-                    title="Mobile App Development"
-                    description="Building a new mobile application"
-                    progress={45}
-                    members={[
-                      { name: 'David Wilson', avatar: null },
-                      { name: 'Eva Brown', avatar: null }
-                    ]}
-                    deadline="2024-03-01"
-                    onClick={() => setSelectedProject('2')}
-                  />
-                  <ProjectCard
-                    id="3"
-                    title="Marketing Campaign"
-                    description="Q1 marketing strategy and execution"
-                    progress={90}
-                    members={[
-                      { name: 'Frank Miller', avatar: null },
-                      { name: 'Grace Lee', avatar: null },
-                      { name: 'Henry Taylor', avatar: null }
-                    ]}
-                    deadline="2024-01-30"
-                    onClick={() => setSelectedProject('3')}
-                  />
-                </div>
-              </TabsContent>
+                      // Get project members
+                      const members = project.project_members?.map((member: any) => ({
+                        name: member.user?.raw_user_meta_data?.name || member.user?.email || 'Unknown User',
+                        avatar: member.user?.raw_user_meta_data?.avatar_url || null
+                      })) || []
 
-              <TabsContent value="tasks">
-                <TaskList />
-              </TabsContent>
+                      return (
+                        <ProjectCard
+                          key={project.id}
+                          id={project.id}
+                          title={project.title}
+                          description={project.description || ''}
+                          progress={progress}
+                          members={members}
+                          deadline={project.deadline || ''}
+                          onClick={() => setSelectedProject(project.id)}
+                        />
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
-              <TabsContent value="overview">
+            {activeTab === 'tasks' && (
+              <div className="space-y-6">
+                <TaskList tasks={tasks} loading={tasksLoading} onTaskCreated={loadDashboardData} />
+              </div>
+            )}
+
+            {activeTab === 'synergy' && (
+              <div className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -206,8 +267,8 @@ export default function Dashboard() {
                       <Target className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">12</div>
-                      <p className="text-xs text-muted-foreground">+2 from last month</p>
+                      <div className="text-2xl font-bold">{stats.totalProjects}</div>
+                      <p className="text-xs text-muted-foreground">Your active projects</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -216,8 +277,8 @@ export default function Dashboard() {
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">28</div>
-                      <p className="text-xs text-muted-foreground">+5 from yesterday</p>
+                      <div className="text-2xl font-bold">{stats.activeTasks}</div>
+                      <p className="text-xs text-muted-foreground">Tasks assigned to you</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -226,8 +287,8 @@ export default function Dashboard() {
                       <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">847</div>
-                      <p className="text-xs text-muted-foreground">+12 this week</p>
+                      <div className="text-2xl font-bold">{stats.synergyScore}</div>
+                      <p className="text-xs text-muted-foreground">Average collaboration score</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -236,13 +297,16 @@ export default function Dashboard() {
                       <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">24</div>
-                      <p className="text-xs text-muted-foreground">+3 new this month</p>
+                      <div className="text-2xl font-bold">{stats.teamMembers}</div>
+                      <p className="text-xs text-muted-foreground">Collaborators across projects</p>
                     </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
-            </Tabs>
+                <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+                  <SynergyLeaderboard />
+                </div>
+              </div>
+            )}
           </div>
         </main>
 
@@ -252,6 +316,10 @@ export default function Dashboard() {
             <div>
               <h3 className="text-lg font-semibold mb-4">Synergy Leaderboard</h3>
               <SynergyLeaderboard />
+            </div>
+
+            <div>
+              <InvitationList />
             </div>
 
             <div>

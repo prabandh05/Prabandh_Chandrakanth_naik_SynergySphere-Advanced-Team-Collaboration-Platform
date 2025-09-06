@@ -14,6 +14,8 @@ import {
   Hash
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
+import { getMessages, createMessage, subscribeToMessages } from '@/lib/database'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface Message {
   id: string
@@ -108,10 +110,65 @@ const mockMembers = [
 ]
 
 export function ProjectChat({ projectId }: ProjectChatProps) {
-  const [messages, setMessages] = useState<Message[]>(mockMessages)
+  const { user } = useAuth()
+  const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [members] = useState(mockMembers)
+  const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (projectId) {
+      loadMessages()
+      setupRealtimeSubscription()
+    }
+  }, [projectId])
+
+  const loadMessages = async () => {
+    try {
+      setLoading(true)
+      const data = await getMessages(projectId)
+      const formattedMessages = data.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        user: {
+          id: msg.user_id,
+          name: `User ${msg.user_id.slice(0, 8)}`,
+          avatar: null
+        },
+        timestamp: msg.created_at,
+        type: 'message' as const
+      }))
+      setMessages(formattedMessages)
+    } catch (error) {
+      console.error('Error loading messages:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const setupRealtimeSubscription = () => {
+    const subscription = subscribeToMessages(projectId, (payload) => {
+      if (payload.eventType === 'INSERT') {
+        const newMessage = {
+          id: payload.new.id,
+          content: payload.new.content,
+          user: {
+            id: payload.new.user_id,
+            name: `User ${payload.new.user_id.slice(0, 8)}`,
+            avatar: null
+          },
+          timestamp: payload.new.created_at,
+          type: 'message' as const
+        }
+        setMessages(prev => [...prev, newMessage])
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -121,24 +178,20 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
     scrollToBottom()
   }, [messages])
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim()) return
+    if (!newMessage.trim() || !user) return
 
-    const message: Message = {
-      id: Date.now().toString(),
-      content: newMessage,
-      user: {
-        id: 'current-user',
-        name: 'You',
-        avatar: null
-      },
-      timestamp: new Date().toISOString(),
-      type: 'message'
+    try {
+      await createMessage({
+        project_id: projectId,
+        user_id: user.id,
+        content: newMessage.trim()
+      })
+      setNewMessage('')
+    } catch (error) {
+      console.error('Error sending message:', error)
     }
-
-    setMessages([...messages, message])
-    setNewMessage('')
   }
 
   const getStatusColor = (status: string) => {
@@ -190,7 +243,18 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
           <CardContent className="flex-1 flex flex-col p-0">
             <ScrollArea className="flex-1 px-6">
               <div className="space-y-4 pb-4">
-                {messages.map((message) => (
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Hash className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No messages yet</h3>
+                    <p className="text-muted-foreground">Start the conversation by sending a message!</p>
+                  </div>
+                ) : (
+                  messages.map((message) => (
                   <div key={message.id} className="flex space-x-3">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={message.user.avatar || undefined} />
@@ -222,7 +286,8 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
                       </p>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
