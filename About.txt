@@ -1,0 +1,29 @@
+Welcome to SynergySphere – Advanced Team Collaboration Platform.
+
+SynergySphere is engineered to address the core challenges of modern team collaboration, combining robust project management, real-time communication, and productivity analytics in a single, scalable solution.
+
+Key Features & Technical Highlights
+1. Project & Task Management
+Dynamic Project Creation: Users can create, edit, and archive projects. Each project is stored in Supabase PostgreSQL, ensuring ACID compliance and scalable data integrity.
+Kanban Board: Tasks are visualized using a drag-and-drop Kanban board built with React DnD. Task states update in real-time, leveraging Supabase’s live subscriptions.
+Task Assignment & Deadlines: Tasks can be assigned to users, with due dates and priority levels. All changes are instantly synced across clients using Supabase’s real-time API.
+2. Real-Time Communication
+Integrated Chat: Each project features a dedicated chat channel. Messages are stored in Supabase and delivered instantly using WebSocket-based real-time listeners.
+File Sharing: Users can upload and share files directly in chat, with uploads managed via Supabase Storage and secure access controls.
+Notifications: In-app notifications alert users to new messages, task updates, and approaching deadlines, powered by React Context and custom hooks.
+3. Synergy Scoring & Analytics
+Collaboration Metrics: The platform tracks user activity—task completions, message frequency, and project contributions—using event-driven triggers in Supabase.
+Synergy Score: A gamified scoring system aggregates these metrics, providing visual feedback and leaderboards to motivate team engagement.
+Analytics Dashboard: Built with shadcn/ui and Chart.js, the dashboard visualizes team performance, bottlenecks, and collaboration trends.
+4. Authentication & Security
+Supabase Auth: Secure email/password authentication with JWT tokens. User roles (admin, member) are enforced at the API and UI level.
+Row-Level Security: All database operations are protected with Supabase’s row-level security policies, ensuring data privacy and multi-tenancy.
+5. Responsive & Modern UI
+Frontend: Built with React, TypeScript, and Tailwind CSS for rapid development and maintainability.
+Component Library: shadcn/ui provides accessible, customizable components for a consistent look and feel.
+Mobile-First Design: The UI adapts seamlessly to desktops, tablets, and smartphones.
+6. Developer Experience
+Vite: Fast development and hot module replacement.
+TanStack Query: Efficient data fetching, caching, and synchronization.
+React Router DOM: Intuitive navigation and deep linking.
+Supabase SDK: Unified backend for database, authentication, storage, and real-time features.
